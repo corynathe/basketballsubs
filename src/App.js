@@ -20,6 +20,7 @@ function App() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [players, setPlayers] = useState(PLAYER_NAMES.map(name => ({name, seconds: 0, isIn: false, comingOut: false, goingIn: false, inAt: undefined, outAt: undefined})));
 
+  // sort players in the game by those coming out and then by time in the game
   const playersInGame = players.filter(player => player.isIn)
         .sort((a, b) => {
             if (a.comingOut && !b.comingOut) {
@@ -32,6 +33,8 @@ function App() {
         });
 
   const playersGoingIn = players.filter(player => player.goingIn);
+
+  // sort players on bench length of time they have been on the bench
     const playersOnBench = players.filter(player => !player.isIn && !player.goingIn)
         .sort((a, b) => (a.outAt || 0) - (b.outAt || 0));
 
@@ -120,19 +123,19 @@ function App() {
         <Row>
             <Col>
                 <div className="col-title">IN GAME</div>
-                <div>
+                <div className="col-content">
                     {playersInGame.map(player => <PlayerCard key={player.name} onClick={comingOut} totalSeconds={totalSeconds} {...player} />)}
                 </div>
             </Col>
             <Col>
                 <div className="col-title">NEXT SUBS</div>
-                <div>
+                <div className="col-content">
                     {playersGoingIn.map(player => <PlayerCard key={player.name} onClick={notGoingIn} {...player} />)}
                 </div>
             </Col>
             <Col>
                 <div className="col-title">BENCH</div>
-                <div>
+                <div className="col-content">
                     {playersOnBench.map(player => <PlayerCard key={player.name} onClick={goingIn} {...player} />)}
                 </div>
             </Col>
@@ -141,18 +144,27 @@ function App() {
   );
 }
 
-const PlayerCard = ({name, seconds, isIn, comingOut, inAt, totalSeconds, onClick}) => {
+const PlayerCard = ({name, seconds, isIn, comingOut, goingIn, inAt, totalSeconds, onClick}) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     const diffM = Math.floor((totalSeconds - inAt) / 60);
     const diffS = (totalSeconds - inAt) % 60;
+    const classNames = ['player-card', 'alert'];
+    if (isIn && !comingOut) classNames.push('alert-success');
+    if (isIn && comingOut) classNames.push('alert-primary');
+    if (goingIn) classNames.push('alert-primary');
+    if (!isIn && !goingIn) classNames.push('alert-light');
 
     return (
-        <div className={`player-card ${isIn ? 'in' : 'out'} ${comingOut ? 'comingOut' : ''}`} data-name={name} onClick={onClick}>
-            {name}
-            {isIn && <span className='player-seconds-current'>({diffM}m {diffS}s)</span>}
-            <span className='player-seconds'>{m}m {s}s</span>
-        </div>
+        <Row className={classNames.join(' ')} data-name={name} onClick={onClick}>
+            <Col xs={5}>
+                {name}
+            </Col>
+            <Col xs={7}>
+                {isIn && <span className='player-seconds-current'>({diffM}m {diffS}s)</span>}
+                <span className='player-seconds'>{m}m {s}s</span>
+            </Col>
+        </Row>
     );
 }
 

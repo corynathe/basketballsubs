@@ -52,16 +52,15 @@
   font-weight: bold;
 }
 
-.player-card {
-  margin: 10px;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  text-align: left;
+.col-content {
+    border: 1px solid #eee;
+    height: 100%;
+    margin: 0 10px;
 }
 
-.player-card.comingOut {
-  background-color: #cccccc;
+.player-card {
+  margin: 10px !important;
+  text-align: left;
 }
 
 .player-seconds, .player-seconds-current {
