@@ -1,11 +1,12 @@
 import React, {useCallback, useEffect, useState} from "react";
 import { useStopwatch } from 'react-timer-hook';
-import { Button, Row, Col } from 'react-bootstrap';
+import { Button, Badge, Row, Col } from 'react-bootstrap';
 
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const PLAYER_NAMES = ['Sawyer', 'Carter', 'Eli', 'Evan', 'Jack', 'Jude', 'Luke', 'Mason', 'Noah', 'Owen', 'Wyatt'];
+const BBB_5 = ['Sawyer', 'Kalim', 'Brody', 'Caleb', 'Wesley', 'John', 'Jaxson', 'Travis', 'Killian', 'Danny', 'Adrian', 'Chris', 'Henry', 'Noah'];
+const BBB_3 = ['Hudson', 'Logan', 'Kamden', 'Micheal', 'Noah', 'August', 'Odin', 'Axel', 'Lennox', 'Keetan', 'Tucker', '', '', ''];
 
 function App() {
   const {
@@ -18,7 +19,7 @@ function App() {
     reset,
   } = useStopwatch({autoStart: false});
   const [confirmReset, setConfirmReset] = useState(false);
-  const [players, setPlayers] = useState(PLAYER_NAMES.map(name => ({name, seconds: 0, isIn: false, comingOut: false, goingIn: false, inAt: undefined, outAt: undefined})));
+  const [players, setPlayers] = useState(shuffle(BBB_5).map(name => ({name, points: 0, seconds: 0, isIn: false, comingOut: false, goingIn: false, inAt: undefined, outAt: undefined})));
 
   // sort players in the game by those coming out and then by time in the game
   const playersInGame = players.filter(player => player.isIn)
@@ -53,7 +54,7 @@ function App() {
     }, [isRunning]);
 
     const resetAll = useCallback(() => {
-        setPlayers(PLAYER_NAMES.map(name => ({name, seconds: 0, isIn: false, comingOut: false, goingIn: false, inAt: undefined, outAt: undefined})));
+        setPlayers(shuffle(BBB_5).map(name => ({name, points: 0, seconds: 0, isIn: false, comingOut: false, goingIn: false, inAt: undefined, outAt: undefined})));
         reset(undefined, false);
         setConfirmReset(false);
     }, [reset]);
@@ -63,7 +64,8 @@ function App() {
     }, []);
 
   const goingIn = useCallback((evt) => {
-      const selected = evt.target.getAttribute('data-name');
+      const selected = getTarget(evt);
+      if (!selected) return;
       setPlayers(current => current.map(player => {
             if (player.name === selected) {
                 return {...player, goingIn: true};
@@ -73,7 +75,8 @@ function App() {
   }, []);
 
   const notGoingIn = useCallback((evt) => {
-        const selected = evt.target.getAttribute('data-name');
+        const selected = getTarget(evt);
+        if (!selected) return;
         setPlayers(current => current.map(player => {
                 if (player.name === selected) {
                     return {...player, goingIn: false};
@@ -83,7 +86,8 @@ function App() {
   }, []);
 
   const comingOut = useCallback((evt) => {
-        const selected = evt.target.getAttribute('data-name');
+        const selected = getTarget(evt);
+        if (!selected) return;
         setPlayers(current => current.map(player => {
             if (player.name === selected) {
                 return {...player, comingOut: !player.comingOut};
@@ -106,6 +110,15 @@ function App() {
         });
   }, [totalSeconds]);
 
+  const addPoints = useCallback((selected, change) => {
+    setPlayers(current => current.map(player => {
+        if (player.name === selected) {
+            return {...player, points: player.points + change};
+        }
+        return player;
+    }));
+  }, []);
+
   return (
       <div className="App">
         <div className="header">
@@ -122,19 +135,19 @@ function App() {
         </div>
         <Row>
             <Col>
-                <div className="col-title">IN GAME</div>
+                <div className="col-title">IN</div>
                 <div className="col-content">
-                    {playersInGame.map(player => <PlayerCard key={player.name} onClick={comingOut} totalSeconds={totalSeconds} {...player} />)}
+                    {playersInGame.map(player => <PlayerCard key={player.name} onClick={comingOut} totalSeconds={totalSeconds} addPoints={addPoints} {...player} />)}
                 </div>
             </Col>
             <Col>
-                <div className="col-title">NEXT SUBS</div>
+                <div className="col-title">SUBS</div>
                 <div className="col-content">
                     {playersGoingIn.map(player => <PlayerCard key={player.name} onClick={notGoingIn} {...player} />)}
                 </div>
             </Col>
             <Col>
-                <div className="col-title">BENCH</div>
+                <div className="col-title">OUT</div>
                 <div className="col-content">
                     {playersOnBench.map(player => <PlayerCard key={player.name} onClick={goingIn} {...player} />)}
                 </div>
@@ -144,7 +157,7 @@ function App() {
   );
 }
 
-const PlayerCard = ({name, seconds, isIn, comingOut, goingIn, inAt, totalSeconds, onClick}) => {
+const PlayerCard = ({name, points, seconds, isIn, comingOut, goingIn, inAt, totalSeconds, onClick, addPoints}) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     const diffM = Math.floor((totalSeconds - inAt) / 60);
@@ -155,17 +168,52 @@ const PlayerCard = ({name, seconds, isIn, comingOut, goingIn, inAt, totalSeconds
     if (goingIn) classNames.push('alert-primary');
     if (!isIn && !goingIn) classNames.push('alert-light');
 
+    const addPoint = useCallback(() => {
+        addPoints(name, 1);
+    }, [addPoints, name]);
+    const removePoint = useCallback(() => {
+        addPoints(name, -1);
+    }, [addPoints, name]);
+
     return (
         <Row className={classNames.join(' ')} data-name={name} onClick={onClick}>
             <Col xs={5}>
-                {name}
+                <div>{name}</div>
             </Col>
             <Col xs={7}>
                 {isIn && <span className='player-seconds-current'>({diffM}m {diffS}s)</span>}
                 <span className='player-seconds'>{m}m {s}s</span>
             </Col>
+            <div>
+                {(isIn || points > 0) && <Badge bg="secondary">{points} pts</Badge>}
+                {isIn && <Badge pill bg="secondary" onClick={addPoint}> + </Badge>}
+                {isIn && <Badge pill bg="secondary" onClick={removePoint}> - </Badge>}
+            </div>
         </Row>
     );
+}
+
+function shuffle(orig) {
+    const array = [...orig];
+    for (var i = array.length - 1; i >= 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var temp = array[i];
+        array[i] = array[j];
+        array[j] = temp;
+    }
+    return array;
+}
+
+function getTarget(evt) {
+    let target = evt.target;
+    if (target.classList.contains('badge')) {
+        return;
+    }
+
+    while (!target.hasAttribute('data-name')) {
+        target = target.parentElement;
+    }
+    return target.getAttribute('data-name');
 }
 
 export default App;
