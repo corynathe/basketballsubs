@@ -5,9 +5,6 @@ import { Button, Badge, Row, Col } from 'react-bootstrap';
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const BBB_5 = ['Sawyer', 'Kalim', 'Brody', 'Caleb', 'Wesley', 'John', 'Jaxson', 'Travis', 'Killian', 'Danny', 'Adrian', 'Chris', 'Henry', 'Noah'];
-const BBB_3 = ['Hudson', 'Logan', 'Kamden', 'Micheal', 'Noah', 'August', 'Odin', 'Axel', 'Lennox', 'Keetan', 'Tucker', '', '', ''];
-
 const EVENT_LABELS = {
     '1pt': 'made a free throw',
     '2pt': 'made a 2pt basket',
@@ -48,7 +45,25 @@ function App() {
   const [showStatsView, setShowStatsView] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState();
   const [events, setEvents] = useState([]);
-  const [players, setPlayers] = useState(shuffle(BBB_5).map(name => ({name, points: 0, seconds: 0, isIn: false, comingOut: false, goingIn: false, inAt: undefined, outAt: undefined})));
+  const [players, setPlayers] = useState([]);
+
+  const applyPlayers = useCallback((name) => {
+       document.getElementById('playersInput').value = "";
+       const playerNames = [];
+       document.getElementsByName(name).forEach(element => {
+            playerNames.push(element.innerHTML);
+       });
+       document.getElementById('playersInput').value = playerNames.join('\n');
+  }, []);
+
+  const setInitPlayers = useCallback(() => {
+    const inputVals = document.getElementById('playersInput').value
+        .split('\n').map(val => val.trim()).filter(val => val !== '');
+
+    const players_ = shuffle(inputVals)
+        .map(name => ({name, points: 0, seconds: 0, isIn: false, comingOut: false, goingIn: false, inAt: undefined, outAt: undefined}));
+    setPlayers(players_);
+  }, []);
 
   const resetClockTime = useCallback(() => {
       TIME = new Date();
@@ -93,12 +108,12 @@ function App() {
     }, [stopWatchIsRunning]);
 
     const resetAll = useCallback(() => {
-        setPlayers(shuffle(BBB_5).map(name => ({name, seconds: 0, isIn: false, comingOut: false, goingIn: false, inAt: undefined, outAt: undefined})));
         setEvents([]);
         setSelectedEvent(undefined);
         stopWatchReset(undefined, false);
         resetClockTime();
         setConfirmReset(false);
+        setPlayers([]);
     }, [stopWatchReset, resetClockTime]);
 
     const start_ = useCallback(() => {
@@ -189,6 +204,55 @@ function App() {
   const selectTeammate = useCallback(() => setSelectedEvent(curr => curr === 'Teammate' ? undefined : 'Teammate'), []);
   const selectBadShot = useCallback(() => setSelectedEvent(curr => curr === 'BadShot' ? undefined : 'BadShot'), []);
   const selectTurnover = useCallback(() => setSelectedEvent(curr => curr === 'Turnover' ? undefined : 'Turnover'), []);
+
+  if (players.length === 0) {
+    return (
+        <Row className="player-input-view">
+            <Col xs={6}>
+                <textarea id="playersInput" rows="20" cols="40"></textarea>
+                <div>
+                    <Button variant="success" onClick={setInitPlayers}>Start</Button>
+                </div>
+            </Col>
+            <Col xs={3}>
+                <div style={{fontWeight: 'bold'}}>5th Grade Boys</div>
+                <div name="player5">Sawyer</div>
+                <div name="player5">Kalim</div>
+                <div name="player5">Brody</div>
+                <div name="player5">Caleb</div>
+                <div name="player5">Wesley</div>
+                <div name="player5">John</div>
+                <div name="player5">Jaxson</div>
+                <div name="player5">Travis</div>
+                <div name="player5">Killian</div>
+                <div name="player5">Danny</div>
+                <div name="player5">Adrian</div>
+                <div name="player5">Chris</div>
+                <div name="player5">Henry</div>
+                <div name="player5">Noah</div>
+                <div><Button variant="outline-secondary" onClick={() => applyPlayers('player5')}>Apply</Button></div>
+            </Col>
+            <Col xs={3}>
+                <div style={{fontWeight: 'bold'}}>3rd Grade Boys</div>
+                <div name="player3">Keaton</div>
+                <div name="player3">Logan</div>
+                <div name="player3">Kamden</div>
+                <div name="player3">Hudson</div>
+                <div name="player3">August</div>
+                <div name="player3">Bode</div>
+                <div name="player3">Axel</div>
+                <div name="player3">Tucker</div>
+                <div name="player3">Noah</div>
+                <div name="player3">Luke</div>
+                <div name="player3">Odin</div>
+                <div name="player3">Lennox</div>
+                <div name="player3">Easton</div>
+                <div name="player3">Michael</div>
+                <div><Button variant="outline-secondary" onClick={() => applyPlayers('player3')}>Apply</Button></div>
+            </Col>
+        </Row>
+    )
+  }
 
   if (showStatsView) {
     return <StatsView players={players} events={events} toggleShowStats={toggleShowStats} />

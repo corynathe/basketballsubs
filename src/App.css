@@ -73,3 +73,7 @@ td.stat-value {
 .stats-timeline {
     margin: 25px;
 }
+
+.player-input-view {
+    margin: 25px !important;
+}
