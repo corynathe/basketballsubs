@@ -1,5 +1,5 @@
-import React, {useCallback, useEffect, useState} from "react";
-import { useStopwatch } from 'react-timer-hook';
+import React, {useCallback, useEffect, useState, useMemo} from "react";
+import { useStopwatch, useTimer } from 'react-timer-hook';
 import { Button, Badge, Row, Col } from 'react-bootstrap';
 
 import './App.css';
@@ -8,30 +8,69 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 const BBB_5 = ['Sawyer', 'Kalim', 'Brody', 'Caleb', 'Wesley', 'John', 'Jaxson', 'Travis', 'Killian', 'Danny', 'Adrian', 'Chris', 'Henry', 'Noah'];
 const BBB_3 = ['Hudson', 'Logan', 'Kamden', 'Micheal', 'Noah', 'August', 'Odin', 'Axel', 'Lennox', 'Keetan', 'Tucker', '', '', ''];
 
+const EVENT_LABELS = {
+    '1pt': 'made a free throw',
+    '2pt': 'made a 2pt basket',
+    '3pt': 'made a 3 pointer',
+    'GoodPass': 'made a good pass',
+    'GoodShot': 'took a good shot',
+    'GoodDef': 'played good on-ball defense',
+    'HelpDef': 'played good help defense',
+    'Hussle': 'made a nice hussle play',
+    'Teammate': 'was a good teammate',
+    'BadShot': 'took a bad shot',
+    'Turnover': 'turned the ball over',
+};
+
+let TIME = new Date();
+
 function App() {
   const {
     totalSeconds,
-    seconds,
-    minutes,
-    isRunning,
-    start,
-    pause,
-    reset,
+    seconds: stopWatchSeconds,
+    minutes: stopWatchMinutes,
+    isRunning: stopWatchIsRunning,
+    start: stopWatchStart,
+    pause: stopWatchPause,
+    reset: stopWatchReset,
   } = useStopwatch({autoStart: false});
+  const {
+    seconds: timerSeconds,
+    minutes: timerMinutes,
+    isRunning: timerIsRunning,
+    start: timerStart,
+    pause: timerPause,
+    restart: timerRestart,
+    resume: timerResume,
+  } = useTimer({ expiryTimestamp: TIME, autoStart: false });
+  const [clockTime, setClockTime] = useState(0);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [showStatsView, setShowStatsView] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState();
+  const [events, setEvents] = useState([]);
   const [players, setPlayers] = useState(shuffle(BBB_5).map(name => ({name, points: 0, seconds: 0, isIn: false, comingOut: false, goingIn: false, inAt: undefined, outAt: undefined})));
 
-  // sort players in the game by those coming out and then by time in the game
+  const resetClockTime = useCallback(() => {
+      TIME = new Date();
+      TIME.setSeconds(TIME.getSeconds() + clockTime);
+      timerRestart(TIME, false);
+  }, [clockTime]);
+
+  const addClockTime = useCallback(() => {
+      setClockTime(current => current + 60);
+  }, []);
+
+  const removeClockTime = useCallback(() => {
+      setClockTime(current => current > 60 ? current - 60 : 0);
+  }, []);
+
+  useEffect(() => {
+    resetClockTime();
+  }, [clockTime]);
+
+  // sort players in the game by time in the game
   const playersInGame = players.filter(player => player.isIn)
-        .sort((a, b) => {
-            if (a.comingOut && !b.comingOut) {
-                return -1;
-            }
-            if (!a.comingOut && b.comingOut) {
-                return 1;
-            }
-            return (a.inAt || 0) - (b.inAt || 0);
-        });
+        .sort((a, b) => (a.inAt || 0) - (b.inAt || 0));
 
   const playersGoingIn = players.filter(player => player.goingIn);
 
@@ -40,7 +79,7 @@ function App() {
         .sort((a, b) => (a.outAt || 0) - (b.outAt || 0));
 
     useEffect(() => {
-        if (isRunning) {
+        if (stopWatchIsRunning) {
             const interval = setInterval(() => {
                 setPlayers(current => current.map(player => {
                     if (player.isIn) {
@@ -51,16 +90,33 @@ function App() {
             }, 1000);
             return () => clearInterval(interval);
         }
-    }, [isRunning]);
+    }, [stopWatchIsRunning]);
 
     const resetAll = useCallback(() => {
-        setPlayers(shuffle(BBB_5).map(name => ({name, points: 0, seconds: 0, isIn: false, comingOut: false, goingIn: false, inAt: undefined, outAt: undefined})));
-        reset(undefined, false);
+        setPlayers(shuffle(BBB_5).map(name => ({name, seconds: 0, isIn: false, comingOut: false, goingIn: false, inAt: undefined, outAt: undefined})));
+        setEvents([]);
+        setSelectedEvent(undefined);
+        stopWatchReset(undefined, false);
+        resetClockTime();
         setConfirmReset(false);
-    }, [reset]);
+    }, [stopWatchReset, resetClockTime]);
+
+    const start_ = useCallback(() => {
+        stopWatchStart();
+        timerResume();
+    }, [stopWatchStart, timerResume]);
+
+    const pause_ = useCallback(() => {
+        stopWatchPause();
+        timerPause();
+    }, [stopWatchPause, timerPause]);
 
     const toggleConfirmReset = useCallback(() => {
         setConfirmReset(current => !current);
+    }, []);
+
+    const toggleShowStats = useCallback(() => {
+        setShowStatsView(current => !current);
     }, []);
 
   const goingIn = useCallback((evt) => {
@@ -110,44 +166,114 @@ function App() {
         });
   }, [totalSeconds]);
 
-  const addPoints = useCallback((selected, change) => {
-    setPlayers(current => current.map(player => {
-        if (player.name === selected) {
-            return {...player, points: player.points + change};
-        }
-        return player;
-    }));
-  }, []);
+  const applyEvent = useCallback(selectedPlayer => {
+    if (selectedEvent) {
+        setEvents(current => [{
+            name: selectedPlayer,
+            event: selectedEvent,
+            seconds: totalSeconds,
+            message: (selectedEvent === 'BadShot' || selectedEvent === 'Turnover' ? '' : selectedPlayer + ' ') + EVENT_LABELS[selectedEvent],
+        }, ...current]);
+        setSelectedEvent(undefined);
+    }
+  }, [selectedEvent, totalSeconds]);
+
+  const select1Pt = useCallback(() => setSelectedEvent(curr => curr === '1pt' ? undefined : '1pt'), []);
+  const select2Pt = useCallback(() => setSelectedEvent(curr => curr === '2pt' ? undefined : '2pt'), []);
+  const select3Pt = useCallback(() => setSelectedEvent(curr => curr === '3pt' ? undefined : '3pt'), []);
+  const selectGoodPass = useCallback(() => setSelectedEvent(curr => curr === 'GoodPass' ? undefined : 'GoodPass'), []);
+  const selectGoodShot = useCallback(() => setSelectedEvent(curr => curr === 'GoodShot' ? undefined : 'GoodShot'), []);
+  const selectGoodDef = useCallback(() => setSelectedEvent(curr => curr === 'GoodDef' ? undefined : 'GoodDef'), []);
+  const selectHelpDef = useCallback(() => setSelectedEvent(curr => curr === 'HelpDef' ? undefined : 'HelpDef'), []);
+  const selectHussle = useCallback(() => setSelectedEvent(curr => curr === 'Hussle' ? undefined : 'Hussle'), []);
+  const selectTeammate = useCallback(() => setSelectedEvent(curr => curr === 'Teammate' ? undefined : 'Teammate'), []);
+  const selectBadShot = useCallback(() => setSelectedEvent(curr => curr === 'BadShot' ? undefined : 'BadShot'), []);
+  const selectTurnover = useCallback(() => setSelectedEvent(curr => curr === 'Turnover' ? undefined : 'Turnover'), []);
+
+  if (showStatsView) {
+    return <StatsView players={players} events={events} toggleShowStats={toggleShowStats} />
+  }
 
   return (
       <div className="App">
         <div className="header">
-          <div className="game-seconds-counter">
-            <span>{String(minutes).padStart(2, '0')}</span>:<span>{String(seconds).padStart(2, '0')}</span>
-          </div>
-          {!isRunning && <Button variant="success" onClick={start}>Start</Button>}
-          {isRunning && <Button variant="danger" onClick={pause}>Stop</Button>}
-            <Button variant="primary" style={{marginLeft: 50}} onClick={substitute}>SUBS</Button>
-            {!confirmReset && <Button variant="secondary" style={{marginLeft: 50}} onClick={toggleConfirmReset}>Reset</Button>}
-            {confirmReset && <Button variant="secondary" style={{marginLeft: 50}} onClick={toggleConfirmReset}>Cancel Reset</Button>}
-            {confirmReset && <div>Are you sure you want to reset all info?</div>}
-            {confirmReset && <Button variant="danger" style={{marginLeft: 50}} onClick={resetAll}>YES</Button>}
+          <Row>
+            <Col>
+                <Button variant="outline-secondary" size="sm" className="game-clock-btn" onClick={addClockTime}> + </Button>
+              <div className="game-seconds-counter">
+                <span>{String(timerMinutes).padStart(2, '0')}</span>:<span>{String(timerSeconds).padStart(2, '0')}</span>
+              </div>
+              <Button variant="outline-secondary" size="sm" className="game-clock-btn" onClick={removeClockTime}> - </Button>
+            </Col>
+            <Col>
+              <div className="game-seconds-counter">
+                <span>{String(stopWatchMinutes).padStart(2, '0')}</span>:<span>{String(stopWatchSeconds).padStart(2, '0')}</span>
+              </div>
+            </Col>
+          </Row>
+          <Row>
+            <Col>
+                {!stopWatchIsRunning && <Button variant="success" onClick={start_}>Start</Button>}
+                {stopWatchIsRunning && <Button variant="danger" onClick={pause_}>Stop</Button>}
+                <Button variant="primary" style={{marginLeft: 50}} onClick={substitute}>SUBS</Button>
+            </Col>
+            <Col>
+                <Button variant="info" onClick={toggleShowStats}>Stats</Button>
+                {!confirmReset && <Button variant="secondary" style={{marginLeft: 50}} onClick={toggleConfirmReset}>Reset</Button>}
+                {confirmReset && <Button variant="secondary" style={{marginLeft: 50}} onClick={toggleConfirmReset}>Cancel Reset</Button>}
+                {confirmReset && <div>Are you sure you want to reset all info?</div>}
+                {confirmReset && <Button variant="danger" style={{marginLeft: 50}} onClick={resetAll}>YES</Button>}
+            </Col>
+          </Row>
         </div>
         <Row>
             <Col>
                 <div className="col-title">IN</div>
                 <div className="col-content">
-                    {playersInGame.map(player => <PlayerCard key={player.name} onClick={comingOut} totalSeconds={totalSeconds} addPoints={addPoints} {...player} />)}
+                    {playersInGame.map(player => <PlayerCard key={player.name} onClick={comingOut} totalSeconds={totalSeconds} {...player} />)}
                 </div>
             </Col>
             <Col>
-                <div className="col-title">SUBS</div>
+                <div className="col-title">NEXT</div>
                 <div className="col-content">
                     {playersGoingIn.map(player => <PlayerCard key={player.name} onClick={notGoingIn} {...player} />)}
                 </div>
             </Col>
+        </Row>
+        <Row>
             <Col>
-                <div className="col-title">OUT</div>
+                <div className="col-title">EVENTS</div>
+                <div className="col-content">
+                    <Row>
+                        <Col xs={7}>
+                            <Button variant={selectedEvent === "1pt" ? "info" : "outline-info"} size="sm" onClick={select1Pt}>+1 pt</Button>
+                            <Button variant={selectedEvent === "2pt" ? "info" : "outline-info"} size="sm" onClick={select2Pt}>+2 pt</Button>
+                            <Button variant={selectedEvent === "3pt" ? "info" : "outline-info"} size="sm" onClick={select3Pt}>+3 pt</Button>
+                            <br/>
+                            <Button variant={selectedEvent === "GoodPass" ? "success" : "outline-success"} size="sm" onClick={selectGoodPass}>Good Pass</Button>
+                            <Button variant={selectedEvent === "GoodShot" ? "success" : "outline-success"} size="sm" onClick={selectGoodShot}>Good Shot</Button>
+                            <br/>
+                            <Button variant={selectedEvent === "GoodDef" ? "success" : "outline-success"} size="sm" onClick={selectGoodDef}>Good Def</Button>
+                            <Button variant={selectedEvent === "HelpDef" ? "success" : "outline-success"} size="sm" onClick={selectHelpDef}>Help Def</Button>
+                            <br/>
+                            <Button variant={selectedEvent === "Hussle" ? "success" : "outline-success"} size="sm" onClick={selectHussle}>Hussle</Button>
+                            <Button variant={selectedEvent === "Teammate" ? "success" : "outline-success"} size="sm" onClick={selectTeammate}>Teammate</Button>
+                            <br/>
+                            <Button variant={selectedEvent === "BadShot" ? "warning" : "outline-warning"} size="sm" onClick={selectBadShot}>Bad Shot</Button>
+                            <Button variant={selectedEvent === "Turnover" ? "warning" : "outline-warning"} size="sm" onClick={selectTurnover}>Turnover</Button>
+                        </Col>
+                        <Col xs={5}>
+                            {playersInGame.map(player =>
+                                <Button key={player.name} variant="outline-secondary" size="sm" style={{width: '100%'}} onClick={() => applyEvent(player.name)}>
+                                    {player.name}
+                                </Button>
+                            )}
+                        </Col>
+                    </Row>
+                </div>
+            </Col>
+            <Col>
+                <div className="col-title">BENCH</div>
                 <div className="col-content">
                     {playersOnBench.map(player => <PlayerCard key={player.name} onClick={goingIn} {...player} />)}
                 </div>
@@ -157,7 +283,82 @@ function App() {
   );
 }
 
-const PlayerCard = ({name, points, seconds, isIn, comingOut, goingIn, inAt, totalSeconds, onClick, addPoints}) => {
+const StatsView = ({events, players, toggleShowStats}) => {
+  const perPlayerEvents = useMemo(() => {
+    const events_ = {};
+    events.forEach(event => {
+        if (!events_[event.name]) events_[event.name] = {};
+        if (!events_[event.name][event.event]) events_[event.name][event.event] = 0;
+        events_[event.name][event.event]++;
+    });
+    return events_;
+  }, [events]);
+
+    return (
+      <>
+        <Button variant="outline-secondary" onClick={toggleShowStats} style={{marginLeft: 25}}>Back</Button>
+        <Row>
+            <Col>
+                <table className="stats">
+                    <thead>
+                        <tr>
+                            <th>Player<br/>Name</th>
+                            <th>Playing<br/>Time</th>
+                            <th>Points<br/>Scored</th>
+                            <th>Good<br/>Pass</th>
+                            <th>Good<br/>Shot</th>
+                            <th>Good<br/>Def</th>
+                            <th>Help<br/>Def</th>
+                            <th>Hussle<br/>Play</th>
+                            <th>Good<br/>Teammate</th>
+                            <th>Bad<br/>Shot</th>
+                            <th>Turnover</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {players.map(player => {
+                            const playerEvents = perPlayerEvents[player.name];
+                            const m = Math.floor(player.seconds / 60);
+                            const s = player.seconds % 60;
+                            const points = (playerEvents?.['1pt'] ?? 0) + 2*(playerEvents?.['2pt'] ?? 0) + 3*(playerEvents?.['3pt'] ?? 0);
+                            return (
+                                <tr key={player.name}>
+                                    <td>{player.name}</td>
+                                    <td className="stat-value">{m}m {s}s</td>
+                                    <td className="stat-value">{points > 0 && points}</td>
+                                    <td className="stat-value">{playerEvents?.['GoodPass']}</td>
+                                    <td className="stat-value">{playerEvents?.['GoodShot']}</td>
+                                    <td className="stat-value">{playerEvents?.['GoodDef']}</td>
+                                    <td className="stat-value">{playerEvents?.['HelpDef']}</td>
+                                    <td className="stat-value">{playerEvents?.['Hussle']}</td>
+                                    <td className="stat-value">{playerEvents?.['Teammate']}</td>
+                                    <td className="stat-value">{playerEvents?.['BadShot']}</td>
+                                    <td className="stat-value">{playerEvents?.['Turnover']}</td>
+                                </tr>
+                            )
+                        })}
+                    </tbody>
+                </table>
+            </Col>
+        </Row>
+        <Row>
+            <Col>
+                <div className="stats-timeline">
+                    {events.map((event, i) => (
+                        <Row key={i}>
+                            <Col>
+                              {event.seconds}s: {event.message}.
+                            </Col>
+                        </Row>
+                    ))}
+                </div>
+            </Col>
+        </Row>
+      </>
+    )
+}
+
+const PlayerCard = ({name, seconds, isIn, comingOut, goingIn, inAt, totalSeconds, onClick}) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     const diffM = Math.floor((totalSeconds - inAt) / 60);
@@ -168,13 +369,6 @@ const PlayerCard = ({name, points, seconds, isIn, comingOut, goingIn, inAt, tota
     if (goingIn) classNames.push('alert-primary');
     if (!isIn && !goingIn) classNames.push('alert-light');
 
-    const addPoint = useCallback(() => {
-        addPoints(name, 1);
-    }, [addPoints, name]);
-    const removePoint = useCallback(() => {
-        addPoints(name, -1);
-    }, [addPoints, name]);
-
     return (
         <Row className={classNames.join(' ')} data-name={name} onClick={onClick}>
             <Col xs={5}>
@@ -184,11 +378,6 @@ const PlayerCard = ({name, points, seconds, isIn, comingOut, goingIn, inAt, tota
                 {isIn && <span className='player-seconds-current'>({diffM}m {diffS}s)</span>}
                 <span className='player-seconds'>{m}m {s}s</span>
             </Col>
-            <div>
-                {(isIn || points > 0) && <Badge bg="secondary">{points} pts</Badge>}
-                {isIn && <Badge pill bg="secondary" onClick={addPoint}> + </Badge>}
-                {isIn && <Badge pill bg="secondary" onClick={removePoint}> - </Badge>}
-            </div>
         </Row>
     );
 }
