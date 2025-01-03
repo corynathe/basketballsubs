@@ -15,9 +15,12 @@ const EVENT_LABELS = {
     'HelpDef': 'played good help defense',
     'Hussle': 'made a nice hussle play',
     'Teammate': 'was a good teammate',
-    'BadShot': 'took a bad shot',
-    'Turnover': 'turned the ball over',
+    'BadShot': 'Took a bad shot',
+    'Turnover': 'Turned the ball over',
+    'OpenShot': 'Defense gave up an open shot',
 };
+
+const TEAM_EVENTS = ['BadShot', 'Turnover', 'OpenShot']
 
 let TIME = new Date();
 
@@ -183,11 +186,12 @@ function App() {
 
   const applyEvent = useCallback(selectedPlayer => {
     if (selectedEvent) {
+        const isTeamEvent = TEAM_EVENTS.indexOf(selectedEvent) > -1;
         setEvents(current => [{
-            name: selectedPlayer,
+            name: !isTeamEvent ? selectedPlayer : undefined,
             event: selectedEvent,
-            seconds: totalSeconds,
-            message: (selectedEvent === 'BadShot' || selectedEvent === 'Turnover' ? '' : selectedPlayer + ' ') + EVENT_LABELS[selectedEvent],
+            seconds: totalSeconds, // TODO change to game clock time
+            message: (isTeamEvent ? '' : selectedPlayer + ' ') + EVENT_LABELS[selectedEvent],
         }, ...current]);
         setSelectedEvent(undefined);
     }
@@ -204,6 +208,7 @@ function App() {
   const selectTeammate = useCallback(() => setSelectedEvent(curr => curr === 'Teammate' ? undefined : 'Teammate'), []);
   const selectBadShot = useCallback(() => setSelectedEvent(curr => curr === 'BadShot' ? undefined : 'BadShot'), []);
   const selectTurnover = useCallback(() => setSelectedEvent(curr => curr === 'Turnover' ? undefined : 'Turnover'), []);
+  const selectOpenShot = useCallback(() => setSelectedEvent(curr => curr === 'OpenShot' ? undefined : 'OpenShot'), []);
 
   if (players.length === 0) {
     return (
@@ -323,8 +328,9 @@ function App() {
                             <Button variant={selectedEvent === "Hussle" ? "success" : "outline-success"} size="sm" onClick={selectHussle}>Hussle</Button>
                             <Button variant={selectedEvent === "Teammate" ? "success" : "outline-success"} size="sm" onClick={selectTeammate}>Teammate</Button>
                             <br/>
-                            <Button variant={selectedEvent === "BadShot" ? "warning" : "outline-warning"} size="sm" onClick={selectBadShot}>Bad Shot</Button>
+                            <Button variant={selectedEvent === "BadShot" ? "warning" : "outline-warning"} size="sm" onClick={selectBadShot}>Took Bad Shot</Button>
                             <Button variant={selectedEvent === "Turnover" ? "warning" : "outline-warning"} size="sm" onClick={selectTurnover}>Turnover</Button>
+                            <Button variant={selectedEvent === "OpenShot" ? "warning" : "outline-warning"} size="sm" onClick={selectOpenShot}>Gave Up Open Shot</Button>
                         </Col>
                         <Col xs={5}>
                             {playersInGame.map(player =>
@@ -375,8 +381,6 @@ const StatsView = ({events, players, toggleShowStats}) => {
                             <th>Help<br/>Def</th>
                             <th>Hussle<br/>Play</th>
                             <th>Good<br/>Teammate</th>
-                            <th>Bad<br/>Shot</th>
-                            <th>Turnover</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -396,11 +400,29 @@ const StatsView = ({events, players, toggleShowStats}) => {
                                     <td className="stat-value">{playerEvents?.['HelpDef']}</td>
                                     <td className="stat-value">{playerEvents?.['Hussle']}</td>
                                     <td className="stat-value">{playerEvents?.['Teammate']}</td>
-                                    <td className="stat-value">{playerEvents?.['BadShot']}</td>
-                                    <td className="stat-value">{playerEvents?.['Turnover']}</td>
                                 </tr>
                             )
                         })}
+                    </tbody>
+                </table>
+            </Col>
+        </Row>
+        <Row>
+            <Col>
+                <table className="stats">
+                    <thead>
+                        <tr>
+                            <th>Turnover</th>
+                            <th>Took a<br/>Bad Shot</th>
+                            <th>Gave Up<br/>Open Shot</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td className="stat-value">{perPlayerEvents[undefined]?.['Turnover']}</td>
+                            <td className="stat-value">{perPlayerEvents[undefined]?.['BadShot']}</td>
+                            <td className="stat-value">{perPlayerEvents[undefined]?.['OpenShot']}</td>
+                        </tr>
                     </tbody>
                 </table>
             </Col>
@@ -411,7 +433,7 @@ const StatsView = ({events, players, toggleShowStats}) => {
                     {events.map((event, i) => (
                         <Row key={i}>
                             <Col>
-                              {event.seconds}s: {event.message}.
+                              {event.seconds}s: {event.message}
                             </Col>
                         </Row>
                     ))}
