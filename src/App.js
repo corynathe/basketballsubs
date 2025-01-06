@@ -9,18 +9,23 @@ const EVENT_LABELS = {
     '1pt': 'made a free throw',
     '2pt': 'made a 2pt basket',
     '3pt': 'made a 3 pointer',
+    'Rebound': 'had a rebound',
+    'Assist': 'had an assist',
+    'Steal': 'stole the ball',
+    'Block': 'blocked a shot',
     'GoodPass': 'made a good pass',
     'GoodShot': 'took a good shot',
     'GoodDef': 'played good on-ball defense',
     'HelpDef': 'played good help defense',
     'Hussle': 'made a nice hussle play',
     'Teammate': 'was a good teammate',
-    'BadShot': 'Took a bad shot',
-    'Turnover': 'Turned the ball over',
-    'OpenShot': 'Defense gave up an open shot',
+    'BadShot': 'took a bad shot',
+    'Turnover': 'turned the ball over',
+    'OpenShot': 'gave up an open shot',
 };
 
 const TEAM_EVENTS = ['BadShot', 'Turnover', 'OpenShot']
+const SCORING_EVENTS = ['1pt', '2pt', '3pt']
 
 let TIME = new Date();
 
@@ -44,6 +49,8 @@ function App() {
     resume: timerResume,
   } = useTimer({ expiryTimestamp: TIME, autoStart: false });
   const [clockTime, setClockTime] = useState(0);
+  const [ourScore, setOurScore] = useState(0);
+  const [theirScore, setTheirScore] = useState(0);
   const [confirmReset, setConfirmReset] = useState(false);
   const [showStatsView, setShowStatsView] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState();
@@ -117,6 +124,8 @@ function App() {
         resetClockTime();
         setConfirmReset(false);
         setPlayers([]);
+        setOurScore(0);
+        setTheirScore(0);
     }, [stopWatchReset, resetClockTime]);
 
     const start_ = useCallback(() => {
@@ -187,19 +196,31 @@ function App() {
   const applyEvent = useCallback(selectedPlayer => {
     if (selectedEvent) {
         const isTeamEvent = TEAM_EVENTS.indexOf(selectedEvent) > -1;
+        const isThem = selectedPlayer === 'them';
         setEvents(current => [{
             name: !isTeamEvent ? selectedPlayer : undefined,
+            team: isThem ? 'them' : 'us',
             event: selectedEvent,
-            seconds: totalSeconds, // TODO change to game clock time
-            message: (isTeamEvent ? '' : selectedPlayer + ' ') + EVENT_LABELS[selectedEvent],
+            seconds: totalSeconds,
+            message: (isThem ? 'They' : (isTeamEvent ? 'We' : selectedPlayer)) + ' ' + EVENT_LABELS[selectedEvent],
         }, ...current]);
         setSelectedEvent(undefined);
+
+        if (SCORING_EVENTS.indexOf(selectedEvent)) {
+            const points = selectedEvent === '1pt' ? 1 : (selectedEvent === '2pt' ? 2 : 3);
+            if (!isThem) setOurScore(curr => curr + points);
+            if (isThem) setTheirScore(curr => curr + points);
+        }
     }
   }, [selectedEvent, totalSeconds]);
 
   const select1Pt = useCallback(() => setSelectedEvent(curr => curr === '1pt' ? undefined : '1pt'), []);
   const select2Pt = useCallback(() => setSelectedEvent(curr => curr === '2pt' ? undefined : '2pt'), []);
   const select3Pt = useCallback(() => setSelectedEvent(curr => curr === '3pt' ? undefined : '3pt'), []);
+  const selectRebound = useCallback(() => setSelectedEvent(curr => curr === 'Rebound' ? undefined : 'Rebound'), []);
+  const selectAssist = useCallback(() => setSelectedEvent(curr => curr === 'Assist' ? undefined : 'Assist'), []);
+  const selectSteal = useCallback(() => setSelectedEvent(curr => curr === 'Steal' ? undefined : 'Steal'), []);
+  const selectBlock = useCallback(() => setSelectedEvent(curr => curr === 'Block' ? undefined : 'Block'), []);
   const selectGoodPass = useCallback(() => setSelectedEvent(curr => curr === 'GoodPass' ? undefined : 'GoodPass'), []);
   const selectGoodShot = useCallback(() => setSelectedEvent(curr => curr === 'GoodShot' ? undefined : 'GoodShot'), []);
   const selectGoodDef = useCallback(() => setSelectedEvent(curr => curr === 'GoodDef' ? undefined : 'GoodDef'), []);
@@ -213,46 +234,45 @@ function App() {
   if (players.length === 0) {
     return (
         <Row className="player-input-view">
-            <Col xs={6}>
+            <Col>
                 <textarea id="playersInput" rows="20" cols="40"></textarea>
                 <div>
                     <Button variant="success" onClick={setInitPlayers}>Start</Button>
                 </div>
             </Col>
-            <Col xs={3}>
+            <Col>
                 <div style={{fontWeight: 'bold'}}>5th Grade Boys</div>
-                <div name="player5">Sawyer</div>
-                <div name="player5">Kalim</div>
-                <div name="player5">Brody</div>
-                <div name="player5">Caleb</div>
-                <div name="player5">Wesley</div>
-                <div name="player5">John</div>
-                <div name="player5">Jaxson</div>
-                <div name="player5">Travis</div>
-                <div name="player5">Killian</div>
-                <div name="player5">Danny</div>
-                <div name="player5">Adrian</div>
-                <div name="player5">Chris</div>
-                <div name="player5">Henry</div>
-                <div name="player5">Noah</div>
+                <div name="player5" className="player-input-name" className="player-input-name">Sawyer</div>
+                <div name="player5" className="player-input-name">Kalim</div>
+                <div name="player5" className="player-input-name">Brody</div>
+                <div name="player5" className="player-input-name">Caleb</div>
+                <div name="player5" className="player-input-name">Wesley</div>
+                <div name="player5" className="player-input-name">John</div>
+                <div name="player5" className="player-input-name">Jaxson</div>
+                <div name="player5" className="player-input-name">Travis</div>
+                <div name="player5" className="player-input-name">Killian</div>
+                <div name="player5" className="player-input-name">Danny</div>
+                <div name="player5" className="player-input-name">Adrian</div>
+                <div name="player5" className="player-input-name">Chris</div>
+                <div name="player5" className="player-input-name">Henry</div>
+                <div name="player5" className="player-input-name">Noah</div>
                 <div><Button variant="outline-secondary" onClick={() => applyPlayers('player5')}>Apply</Button></div>
-            </Col>
-            <Col xs={3}>
+                <br/>
                 <div style={{fontWeight: 'bold'}}>3rd Grade Boys</div>
-                <div name="player3">Keaton</div>
-                <div name="player3">Logan</div>
-                <div name="player3">Kamden</div>
-                <div name="player3">Hudson</div>
-                <div name="player3">August</div>
-                <div name="player3">Bode</div>
-                <div name="player3">Axel</div>
-                <div name="player3">Tucker</div>
-                <div name="player3">Noah</div>
-                <div name="player3">Luke</div>
-                <div name="player3">Odin</div>
-                <div name="player3">Lennox</div>
-                <div name="player3">Easton</div>
-                <div name="player3">Michael</div>
+                <div name="player3" className="player-input-name">Keaton</div>
+                <div name="player3" className="player-input-name">Logan</div>
+                <div name="player3" className="player-input-name">Kamden</div>
+                <div name="player3" className="player-input-name">Hudson</div>
+                <div name="player3" className="player-input-name">August</div>
+                <div name="player3" className="player-input-name">Bode</div>
+                <div name="player3" className="player-input-name">Axel</div>
+                <div name="player3" className="player-input-name">Tucker</div>
+                <div name="player3" className="player-input-name">Noah</div>
+                <div name="player3" className="player-input-name">Luke</div>
+                <div name="player3" className="player-input-name">Odin</div>
+                <div name="player3" className="player-input-name">Lennox</div>
+                <div name="player3" className="player-input-name">Easton</div>
+                <div name="player3" className="player-input-name">Michael</div>
                 <div><Button variant="outline-secondary" onClick={() => applyPlayers('player3')}>Apply</Button></div>
             </Col>
         </Row>
@@ -260,7 +280,7 @@ function App() {
   }
 
   if (showStatsView) {
-    return <StatsView players={players} events={events} toggleShowStats={toggleShowStats} />
+    return <StatsView players={players} events={events} toggleShowStats={toggleShowStats} ourScore={ourScore} theirScore={theirScore} />
   }
 
   return (
@@ -275,9 +295,12 @@ function App() {
               <Button variant="outline-secondary" size="sm" className="game-clock-btn" onClick={removeClockTime}> - </Button>
             </Col>
             <Col>
-              <div className="game-seconds-counter">
-                <span>{String(stopWatchMinutes).padStart(2, '0')}</span>:<span>{String(stopWatchSeconds).padStart(2, '0')}</span>
-              </div>
+              <table className="score-board">
+                <tbody>
+                    <tr><td className="score-value">{ourScore}</td><td className="score-value"> - </td><td className="score-value">{theirScore}</td></tr>
+                    <tr><td className="score-name">US</td><td></td><td className="score-name">THEM</td></tr>
+                </tbody>
+              </table>
             </Col>
           </Row>
           <Row>
@@ -314,30 +337,41 @@ function App() {
                 <div className="col-title">EVENTS</div>
                 <div className="col-content">
                     <Row>
-                        <Col xs={7}>
-                            <Button variant={selectedEvent === "1pt" ? "info" : "outline-info"} size="sm" onClick={select1Pt}>+1 pt</Button>
-                            <Button variant={selectedEvent === "2pt" ? "info" : "outline-info"} size="sm" onClick={select2Pt}>+2 pt</Button>
-                            <Button variant={selectedEvent === "3pt" ? "info" : "outline-info"} size="sm" onClick={select3Pt}>+3 pt</Button>
+                        <Col xs={8}>
+                            <Button variant={selectedEvent === "1pt" ? "info" : "outline-info"} onClick={select1Pt}>+1 pt</Button>
+                            <Button variant={selectedEvent === "2pt" ? "info" : "outline-info"} onClick={select2Pt}>+2 pt</Button>
+                            <Button variant={selectedEvent === "3pt" ? "info" : "outline-info"} onClick={select3Pt}>+3 pt</Button>
                             <br/>
-                            <Button variant={selectedEvent === "GoodPass" ? "success" : "outline-success"} size="sm" onClick={selectGoodPass}>Good Pass</Button>
-                            <Button variant={selectedEvent === "GoodShot" ? "success" : "outline-success"} size="sm" onClick={selectGoodShot}>Good Shot</Button>
+                            <Button variant={selectedEvent === "Rebound" ? "success" : "outline-success"} onClick={selectRebound}>REB</Button>
+                            <Button variant={selectedEvent === "Assist" ? "success" : "outline-success"} onClick={selectAssist}>AST</Button>
+                            <Button variant={selectedEvent === "Steal" ? "success" : "outline-success"} onClick={selectSteal}>STL</Button>
+                            <Button variant={selectedEvent === "Block" ? "success" : "outline-success"} onClick={selectBlock}>BLK</Button>
                             <br/>
-                            <Button variant={selectedEvent === "GoodDef" ? "success" : "outline-success"} size="sm" onClick={selectGoodDef}>Good Def</Button>
-                            <Button variant={selectedEvent === "HelpDef" ? "success" : "outline-success"} size="sm" onClick={selectHelpDef}>Help Def</Button>
+                            <Button variant={selectedEvent === "GoodPass" ? "success" : "outline-success"} onClick={selectGoodPass}>Good Pass</Button>
+                            <Button variant={selectedEvent === "GoodShot" ? "success" : "outline-success"} onClick={selectGoodShot}>Good Shot</Button>
                             <br/>
-                            <Button variant={selectedEvent === "Hussle" ? "success" : "outline-success"} size="sm" onClick={selectHussle}>Hussle</Button>
-                            <Button variant={selectedEvent === "Teammate" ? "success" : "outline-success"} size="sm" onClick={selectTeammate}>Teammate</Button>
+                            <Button variant={selectedEvent === "GoodDef" ? "success" : "outline-success"} onClick={selectGoodDef}>Good Def</Button>
+                            <Button variant={selectedEvent === "HelpDef" ? "success" : "outline-success"} onClick={selectHelpDef}>Help Def</Button>
                             <br/>
-                            <Button variant={selectedEvent === "BadShot" ? "warning" : "outline-warning"} size="sm" onClick={selectBadShot}>Took Bad Shot</Button>
-                            <Button variant={selectedEvent === "Turnover" ? "warning" : "outline-warning"} size="sm" onClick={selectTurnover}>Turnover</Button>
-                            <Button variant={selectedEvent === "OpenShot" ? "warning" : "outline-warning"} size="sm" onClick={selectOpenShot}>Gave Up Open Shot</Button>
+                            <Button variant={selectedEvent === "Hussle" ? "success" : "outline-success"} onClick={selectHussle}>Hussle</Button>
+                            <Button variant={selectedEvent === "Teammate" ? "success" : "outline-success"} onClick={selectTeammate}>Teammate</Button>
+                            <br/>
+                            <Button variant={selectedEvent === "BadShot" ? "warning" : "outline-warning"} onClick={selectBadShot}>Bad Shot</Button>
+                            <Button variant={selectedEvent === "Turnover" ? "warning" : "outline-warning"} onClick={selectTurnover}>Turnover</Button>
+                            <Button variant={selectedEvent === "OpenShot" ? "warning" : "outline-warning"} onClick={selectOpenShot}>Open Shot</Button>
                         </Col>
-                        <Col xs={5}>
+                        <Col xs={4}>
                             {playersInGame.map(player =>
-                                <Button key={player.name} variant="outline-secondary" size="sm" style={{width: '100%'}} onClick={() => applyEvent(player.name)}>
+                                <Button key={player.name} variant="outline-dark" style={{width: '100%'}} onClick={() => applyEvent(player.name)}>
                                     {player.name}
                                 </Button>
                             )}
+                            <Button key="us" variant="outline-primary" style={{width: '100%'}} onClick={() => applyEvent('us')}>
+                                US
+                            </Button>
+                            <Button key="them" variant="outline-primary" style={{width: '100%'}} onClick={() => applyEvent('them')}>
+                                THEM
+                            </Button>
                         </Col>
                     </Row>
                 </div>
@@ -353,13 +387,14 @@ function App() {
   );
 }
 
-const StatsView = ({events, players, toggleShowStats}) => {
+const StatsView = ({events, players, toggleShowStats, ourScore, theirScore}) => {
   const perPlayerEvents = useMemo(() => {
     const events_ = {};
     events.forEach(event => {
-        if (!events_[event.name]) events_[event.name] = {};
-        if (!events_[event.name][event.event]) events_[event.name][event.event] = 0;
-        events_[event.name][event.event]++;
+        const name = event.name ?? event.team;
+        if (!events_[name]) events_[name] = {};
+        if (!events_[name][event.event]) events_[name][event.event] = 0;
+        events_[name][event.event]++;
     });
     return events_;
   }, [events]);
@@ -368,6 +403,16 @@ const StatsView = ({events, players, toggleShowStats}) => {
       <>
         <Button variant="outline-secondary" onClick={toggleShowStats} style={{marginLeft: 25}}>Back</Button>
         <Row>
+        <Col>
+          <table className="score-board">
+            <tbody>
+                <tr><td className="score-value">{ourScore}</td><td className="score-value"> - </td><td className="score-value">{theirScore}</td></tr>
+                <tr><td className="score-name">US</td><td></td><td className="score-name">THEM</td></tr>
+            </tbody>
+          </table>
+      </Col>
+      </Row>
+        <Row>
             <Col>
                 <table className="stats">
                     <thead>
@@ -375,6 +420,10 @@ const StatsView = ({events, players, toggleShowStats}) => {
                             <th>Player<br/>Name</th>
                             <th>Playing<br/>Time</th>
                             <th>Points<br/>Scored</th>
+                            <th>Rebound</th>
+                            <th>Assist</th>
+                            <th>Steal</th>
+                            <th>Block</th>
                             <th>Good<br/>Pass</th>
                             <th>Good<br/>Shot</th>
                             <th>Good<br/>Def</th>
@@ -394,6 +443,10 @@ const StatsView = ({events, players, toggleShowStats}) => {
                                     <td>{player.name}</td>
                                     <td className="stat-value">{m}m {s}s</td>
                                     <td className="stat-value">{points > 0 && points}</td>
+                                    <td className="stat-value">{playerEvents?.['Rebound']}</td>
+                                    <td className="stat-value">{playerEvents?.['Assist']}</td>
+                                    <td className="stat-value">{playerEvents?.['Steal']}</td>
+                                    <td className="stat-value">{playerEvents?.['Block']}</td>
                                     <td className="stat-value">{playerEvents?.['GoodPass']}</td>
                                     <td className="stat-value">{playerEvents?.['GoodShot']}</td>
                                     <td className="stat-value">{playerEvents?.['GoodDef']}</td>
@@ -409,26 +462,21 @@ const StatsView = ({events, players, toggleShowStats}) => {
         </Row>
         <Row>
             <Col>
-                <table className="stats">
-                    <thead>
-                        <tr>
-                            <th>Turnover</th>
-                            <th>Took a<br/>Bad Shot</th>
-                            <th>Gave Up<br/>Open Shot</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td className="stat-value">{perPlayerEvents[undefined]?.['Turnover']}</td>
-                            <td className="stat-value">{perPlayerEvents[undefined]?.['BadShot']}</td>
-                            <td className="stat-value">{perPlayerEvents[undefined]?.['OpenShot']}</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div className="stats-header">US</div>
+                {Object.keys(perPlayerEvents?.['us'] ?? {}).map(key => (
+                    <div className="stats-value" key={key}>{key}: {perPlayerEvents?.['us'][key]}</div>
+                ))}
+            </Col>
+            <Col>
+                <div className="stats-header">THEM</div>
+                {Object.keys(perPlayerEvents?.['them'] ?? {}).map(key => (
+                    <div className="stats-value" key={key}>{key}: {perPlayerEvents?.['them'][key]}</div>
+                ))}
             </Col>
         </Row>
         <Row>
             <Col>
+                <div className="stats-header">TIMELINE</div>
                 <div className="stats-timeline">
                     {events.map((event, i) => (
                         <Row key={i}>
@@ -438,6 +486,10 @@ const StatsView = ({events, players, toggleShowStats}) => {
                         </Row>
                     ))}
                 </div>
+                <br/>
+                <br/>
+                <br/>
+                <br/>
             </Col>
         </Row>
       </>
