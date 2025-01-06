@@ -197,18 +197,19 @@ function App() {
     if (selectedEvent) {
         const isTeamEvent = TEAM_EVENTS.indexOf(selectedEvent) > -1;
         const isThem = selectedPlayer === 'them';
+        const isUs = selectedPlayer === 'us';
         setEvents(current => [{
-            name: !isTeamEvent ? selectedPlayer : undefined,
+            name: isTeamEvent || isThem || isUs ? undefined : selectedPlayer,
             team: isThem ? 'them' : 'us',
             event: selectedEvent,
             seconds: totalSeconds,
-            message: (isThem ? 'They' : (isTeamEvent ? 'We' : selectedPlayer)) + ' ' + EVENT_LABELS[selectedEvent],
+            message: (isThem ? 'They' : (isTeamEvent || isUs ? 'We' : selectedPlayer)) + ' ' + EVENT_LABELS[selectedEvent],
         }, ...current]);
         setSelectedEvent(undefined);
 
-        if (SCORING_EVENTS.indexOf(selectedEvent)) {
+        if (SCORING_EVENTS.indexOf(selectedEvent) > -1) {
             const points = selectedEvent === '1pt' ? 1 : (selectedEvent === '2pt' ? 2 : 3);
-            if (!isThem) setOurScore(curr => curr + points);
+            if (isUs) setOurScore(curr => curr + points);
             if (isThem) setTheirScore(curr => curr + points);
         }
     }
