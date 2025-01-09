@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/basketballsubs/static/css/main.bec838f7.css",
-    "main.js": "/basketballsubs/static/js/main.9cbca240.js",
+    "main.js": "/basketballsubs/static/js/main.5a2975a0.js",
     "index.html": "/basketballsubs/index.html",
     "main.bec838f7.css.map": "/basketballsubs/static/css/main.bec838f7.css.map",
-    "main.9cbca240.js.map": "/basketballsubs/static/js/main.9cbca240.js.map"
+    "main.5a2975a0.js.map": "/basketballsubs/static/js/main.5a2975a0.js.map"
   },
   "entrypoints": [
     "static/css/main.bec838f7.css",
-    "static/js/main.9cbca240.js"
+    "static/js/main.5a2975a0.js"
   ]
 }
