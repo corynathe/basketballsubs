@@ -8,7 +8,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 const EVENT_LABELS = {
     '1pt': 'made a free throw',
     '2pt': 'made a 2pt basket',
-    '3pt': 'made a 3 pointer',
+    '3pt': 'made a 3pt basket',
     'Rebound': 'had a rebound',
     'Assist': 'had an assist',
     'Steal': 'stole the ball',
@@ -209,8 +209,8 @@ function App() {
 
         if (SCORING_EVENTS.indexOf(selectedEvent) > -1) {
             const points = selectedEvent === '1pt' ? 1 : (selectedEvent === '2pt' ? 2 : 3);
-            if (isUs) setOurScore(curr => curr + points);
             if (isThem) setTheirScore(curr => curr + points);
+            if (!isThem) setOurScore(curr => curr + points);
         }
     }
   }, [selectedEvent, totalSeconds]);
