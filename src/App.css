@@ -103,3 +103,8 @@ td.stat-value {
 .player-input-name {
     display: none;
 }
+
+.event-button {
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+}

@@ -93,6 +93,15 @@ function App() {
     resetClockTime();
   }, [clockTime]);
 
+  useEffect(() => {
+    if (ourScore > 0 || theirScore > 0) {
+        setEvents(current => [{
+            event: 'ScoreChange',
+            message: 'Score: ' + ourScore + ' (us) - ' + theirScore + ' (them)',
+        }, ...current]);
+    }
+  }, [ourScore, theirScore]);
+
   // sort players in the game by time in the game
   const playersInGame = players.filter(player => player.isIn)
         .sort((a, b) => (a.inAt || 0) - (b.inAt || 0));
@@ -236,7 +245,7 @@ function App() {
     return (
         <Row className="player-input-view">
             <Col>
-                <textarea id="playersInput" rows="20" cols="40"></textarea>
+                <textarea id="playersInput" rows="20" cols="20"></textarea>
                 <div>
                     <Button variant="success" onClick={setInitPlayers}>Start</Button>
                 </div>
@@ -339,38 +348,38 @@ function App() {
                 <div className="col-content">
                     <Row>
                         <Col xs={8}>
-                            <Button variant={selectedEvent === "1pt" ? "info" : "outline-info"} onClick={select1Pt}>+1 pt</Button>
-                            <Button variant={selectedEvent === "2pt" ? "info" : "outline-info"} onClick={select2Pt}>+2 pt</Button>
-                            <Button variant={selectedEvent === "3pt" ? "info" : "outline-info"} onClick={select3Pt}>+3 pt</Button>
+                            <Button className="event-button" variant={selectedEvent === "1pt" ? "info" : "outline-info"} onClick={select1Pt}>+1 pt</Button>
+                            <Button className="event-button" variant={selectedEvent === "2pt" ? "info" : "outline-info"} onClick={select2Pt}>+2 pt</Button>
+                            <Button className="event-button" variant={selectedEvent === "3pt" ? "info" : "outline-info"} onClick={select3Pt}>+3 pt</Button>
                             <br/>
-                            <Button variant={selectedEvent === "Rebound" ? "success" : "outline-success"} onClick={selectRebound}>REB</Button>
-                            <Button variant={selectedEvent === "Assist" ? "success" : "outline-success"} onClick={selectAssist}>AST</Button>
-                            <Button variant={selectedEvent === "Steal" ? "success" : "outline-success"} onClick={selectSteal}>STL</Button>
-                            <Button variant={selectedEvent === "Block" ? "success" : "outline-success"} onClick={selectBlock}>BLK</Button>
+                            <Button className="event-button" variant={selectedEvent === "Rebound" ? "success" : "outline-success"} onClick={selectRebound}>REB</Button>
+                            <Button className="event-button" variant={selectedEvent === "Assist" ? "success" : "outline-success"} onClick={selectAssist}>AST</Button>
+                            <Button className="event-button" variant={selectedEvent === "Steal" ? "success" : "outline-success"} onClick={selectSteal}>STL</Button>
+                            <Button className="event-button" variant={selectedEvent === "Block" ? "success" : "outline-success"} onClick={selectBlock}>BLK</Button>
                             <br/>
-                            <Button variant={selectedEvent === "GoodPass" ? "success" : "outline-success"} onClick={selectGoodPass}>Good Pass</Button>
-                            <Button variant={selectedEvent === "GoodShot" ? "success" : "outline-success"} onClick={selectGoodShot}>Good Shot</Button>
+                            <Button className="event-button" variant={selectedEvent === "GoodPass" ? "success" : "outline-success"} onClick={selectGoodPass}>Good Pass</Button>
+                            <Button className="event-button" variant={selectedEvent === "GoodShot" ? "success" : "outline-success"} onClick={selectGoodShot}>Good Shot</Button>
                             <br/>
-                            <Button variant={selectedEvent === "GoodDef" ? "success" : "outline-success"} onClick={selectGoodDef}>Good Def</Button>
-                            <Button variant={selectedEvent === "HelpDef" ? "success" : "outline-success"} onClick={selectHelpDef}>Help Def</Button>
+                            <Button className="event-button" variant={selectedEvent === "GoodDef" ? "success" : "outline-success"} onClick={selectGoodDef}>Good Def</Button>
+                            <Button className="event-button" variant={selectedEvent === "HelpDef" ? "success" : "outline-success"} onClick={selectHelpDef}>Help Def</Button>
                             <br/>
-                            <Button variant={selectedEvent === "Hussle" ? "success" : "outline-success"} onClick={selectHussle}>Hussle</Button>
-                            <Button variant={selectedEvent === "Teammate" ? "success" : "outline-success"} onClick={selectTeammate}>Teammate</Button>
+                            <Button className="event-button" variant={selectedEvent === "Hussle" ? "success" : "outline-success"} onClick={selectHussle}>Hussle</Button>
+                            <Button className="event-button" variant={selectedEvent === "Teammate" ? "success" : "outline-success"} onClick={selectTeammate}>Teammate</Button>
                             <br/>
-                            <Button variant={selectedEvent === "BadShot" ? "warning" : "outline-warning"} onClick={selectBadShot}>Bad Shot</Button>
-                            <Button variant={selectedEvent === "Turnover" ? "warning" : "outline-warning"} onClick={selectTurnover}>Turnover</Button>
-                            <Button variant={selectedEvent === "OpenShot" ? "warning" : "outline-warning"} onClick={selectOpenShot}>Open Shot</Button>
+                            <Button className="event-button" variant={selectedEvent === "BadShot" ? "warning" : "outline-warning"} onClick={selectBadShot}>Bad Shot</Button>
+                            <Button className="event-button" variant={selectedEvent === "Turnover" ? "warning" : "outline-warning"} onClick={selectTurnover}>Turnover</Button>
+                            <Button className="event-button" variant={selectedEvent === "OpenShot" ? "warning" : "outline-warning"} onClick={selectOpenShot}>Open Shot</Button>
                         </Col>
                         <Col xs={4}>
                             {playersInGame.map(player =>
-                                <Button key={player.name} variant="outline-dark" style={{width: '100%'}} onClick={() => applyEvent(player.name)}>
+                                <Button key={player.name} className="event-button" variant="outline-dark" style={{width: '100%'}} onClick={() => applyEvent(player.name)}>
                                     {player.name}
                                 </Button>
                             )}
-                            <Button key="us" variant="outline-primary" style={{width: '100%'}} onClick={() => applyEvent('us')}>
+                            <Button key="us" className="event-button" variant="outline-primary" style={{width: '100%'}} onClick={() => applyEvent('us')}>
                                 US
                             </Button>
-                            <Button key="them" variant="outline-primary" style={{width: '100%'}} onClick={() => applyEvent('them')}>
+                            <Button key="them" className="event-button" variant="outline-primary" style={{width: '100%'}} onClick={() => applyEvent('them')}>
                                 THEM
                             </Button>
                         </Col>
@@ -482,7 +491,7 @@ const StatsView = ({events, players, toggleShowStats, ourScore, theirScore}) => 
                     {events.map((event, i) => (
                         <Row key={i}>
                             <Col>
-                              {event.seconds}s: {event.message}
+                              {event.seconds !== undefined ? event.seconds + 's: ' : ''}{event.message}
                             </Col>
                         </Row>
                     ))}
