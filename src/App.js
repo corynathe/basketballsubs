@@ -409,9 +409,20 @@ const StatsView = ({events, players, toggleShowStats, ourScore, theirScore}) => 
     return events_;
   }, [events]);
 
+  const copyStats = useCallback(() => {
+      const div = document.getElementById('root');
+      const range = document.createRange();
+      range.selectNodeContents(div);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      document.execCommand('copy');
+  }, []);
+
     return (
       <>
         <Button variant="outline-secondary" onClick={toggleShowStats} style={{marginLeft: 25}}>Back</Button>
+        <Button variant="outline-secondary" onClick={copyStats} style={{marginLeft: 25}}>Copy</Button>
         <Row>
         <Col>
           <table className="score-board">
